@@ -1,0 +1,48 @@
+from flask import Flask, request, render_template, send_file
+from pyembroidery import read, write
+import os
+
+app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = 'uploads'
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+SUPPORTED_FORMATS = ['dst', 'exp', 'pes', 'jef', 'vp3', 'hus', 'xxx', 'pcs', 'vip', 'sew', 'shv', 'svg']
+
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    if request.method == 'POST':
+        if 'file' not in request.files:
+            return 'No file uploaded', 400
+        file = request.files['file']
+        if file.filename == '':
+            return 'No selected file', 400
+
+        output_format = request.form.get('output_format')
+        if output_format not in SUPPORTED_FORMATS:
+            return f'Unsupported format: {output_format}', 400
+
+        input_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+        file.save(input_path)
+
+        try:
+            pattern = read(input_path)
+        except Exception as e:
+            return f'Failed to read file: {e}', 500
+
+        output_filename = os.path.splitext(file.filename)[0] + '.' + output_format
+        output_path = os.path.join(app.config['UPLOAD_FOLDER'], output_filename)
+        try:
+            write(pattern, output_path)
+        except Exception as e:
+            return f'Failed to write file: {e}', 500
+
+        return render_template('result.html', download_file=output_filename)
+
+    return render_template('index.html', formats=SUPPORTED_FORMATS)
+
+@app.route('/download/<filename>')
+def download(filename):
+    return send_file(os.path.join(app.config['UPLOAD_FOLDER'], filename), as_attachment=True)
+
+if __name__ == '__main__':
+    app.run(debug=True, use_reloader=False, threaded=True)
