@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Conversion Result</title>
+</head>
+<body>
+    <h1>Conversion Complete</h1>
+    <a href="{{ url_for('download', filename=download_file) }}">Download {{ download_file }}</a>
+    {% if svg_preview %}
+        <h2>SVG Preview:</h2>
+        <div>{{ svg_preview | safe }}</div>
+    {% endif %}
+    <br><br>
+    <a href="{{ url_for('index') }}">Convert another file</a>
+</body>
+</html>

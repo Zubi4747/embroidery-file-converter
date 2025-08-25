@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Embroidery File Converter</title>
+</head>
+<body>
+    <h1>Upload Embroidery File</h1>
+    <form method="POST" enctype="multipart/form-data">
+        <input type="file" name="file" required>
+        <select name="output_format">
+            {% for fmt in formats %}
+            <option value="{{ fmt }}">{{ fmt.upper() }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Convert</button>
+    </form>
+</body>
+</html>

@@ -1,3 +1,2 @@
-Flask
-pyembroidery
-gunicorn
+Flask>=2.2
+pyembroidery>=1.0

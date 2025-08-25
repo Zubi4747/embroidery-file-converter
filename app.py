@@ -6,20 +6,22 @@ app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-SUPPORTED_FORMATS = ['dst', 'exp', 'pes', 'jef', 'vp3', 'hus', 'xxx', 'pcs', 'vip', 'sew', 'shv', 'svg']
+SUPPORTED_FORMATS = [
+    'dst', 'exp', 'pes', 'jef', 'vp3', 'hus', 'xxx', 'pcs', 'vip', 'sew', 'shv', 'svg'
+]
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
         if 'file' not in request.files:
-            return 'No file uploaded', 400
+            return 'No file part', 400
         file = request.files['file']
         if file.filename == '':
             return 'No selected file', 400
 
         output_format = request.form.get('output_format')
         if output_format not in SUPPORTED_FORMATS:
-            return f'Unsupported format: {output_format}', 400
+            return f'Unsupported output format. Supported: {SUPPORTED_FORMATS}', 400
 
         input_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
         file.save(input_path)
@@ -36,7 +38,17 @@ def index():
         except Exception as e:
             return f'Failed to write file: {e}', 500
 
-        return render_template('result.html', download_file=output_filename)
+        svg_preview = None
+        if output_format != 'svg':
+            try:
+                svg_preview_path = os.path.join(app.config['UPLOAD_FOLDER'], 'preview.svg')
+                write(pattern, svg_preview_path)
+                with open(svg_preview_path, 'r') as f:
+                    svg_preview = f.read()
+            except Exception as e:
+                svg_preview = f'Preview not available: {e}'
+
+        return render_template('result.html', download_file=output_filename, svg_preview=svg_preview)
 
     return render_template('index.html', formats=SUPPORTED_FORMATS)
 
@@ -45,4 +57,4 @@ def download(filename):
     return send_file(os.path.join(app.config['UPLOAD_FOLDER'], filename), as_attachment=True)
 
 if __name__ == '__main__':
-    app.run(debug=True, use_reloader=False, threaded=True)
+    app.run(debug=True, use_reloader=False, threaded=True, host='0.0.0.0', port=5000)
