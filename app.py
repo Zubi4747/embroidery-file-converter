@@ -1,16 +1,18 @@
 from flask import Flask, request, render_template, send_file
 from pyembroidery import read, write
 import os
+import uuid
 
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = 'uploads'
+UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 SUPPORTED_FORMATS = [
-    'dst', 'exp', 'pes', 'jef', 'vp3', 'hus', 'xxx', 'pcs', 'vip', 'sew', 'shv', 'svg'
+    'dst','exp','pes','jef','vp3','hus','xxx','pcs','vip','sew','shv','svg'
 ]
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/', methods=['GET','POST'])
 def index():
     if request.method == 'POST':
         if 'file' not in request.files:
@@ -23,7 +25,8 @@ def index():
         if output_format not in SUPPORTED_FORMATS:
             return f'Unsupported output format. Supported: {SUPPORTED_FORMATS}', 400
 
-        input_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+        filename = str(uuid.uuid4()) + os.path.splitext(file.filename)[1]
+        input_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(input_path)
 
         try:
@@ -31,7 +34,7 @@ def index():
         except Exception as e:
             return f'Failed to read file: {e}', 500
 
-        output_filename = os.path.splitext(file.filename)[0] + '.' + output_format
+        output_filename = os.path.splitext(filename)[0] + '.' + output_format
         output_path = os.path.join(app.config['UPLOAD_FOLDER'], output_filename)
         try:
             write(pattern, output_path)
@@ -54,7 +57,11 @@ def index():
 
 @app.route('/download/<filename>')
 def download(filename):
-    return send_file(os.path.join(app.config['UPLOAD_FOLDER'], filename), as_attachment=True)
+    path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    if not os.path.exists(path):
+        return 'File not found', 404
+    return send_file(path, as_attachment=True)
 
 if __name__ == '__main__':
-    app.run(debug=True, use_reloader=False, threaded=True, host='0.0.0.0', port=5000)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(debug=True, use_reloader=False, threaded=True, host='0.0.0.0', port=port)
